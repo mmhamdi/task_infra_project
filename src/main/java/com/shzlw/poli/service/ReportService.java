@@ -7,6 +7,9 @@ import com.shzlw.poli.dao.ReportDao;
 import com.shzlw.poli.model.Report;
 import com.shzlw.poli.model.User;
 import com.shzlw.poli.util.Constants;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,29 +38,51 @@ public class ReportService {
     @Autowired
     ReportDao reportDao;
 
+    @Autowired
+    private Tracer tracer;
+
     public List<Report> getReportsByUser(User user) {
-        if (StringUtils.isEmpty(user)) {
-            return Collections.emptyList();
-        }
+        Span span = tracer.spanBuilder("getReportsByUser").startSpan();
+        try (Scope scope = span.makeCurrent()) {
+            if (StringUtils.isEmpty(user)) {
+                span.addEvent("Empty user");
+                return Collections.emptyList();
+            }
 
-        try {
-            List<Report> rt = USER_REPORT_CACHE.get(user.getId(), () -> {
-                List<Report> reports = new ArrayList<>();
-                if (Constants.SYS_ROLE_VIEWER.equals(user.getSysRole())) {
-                    reports = reportDao.findByViewer(user.getId());
-                } else {
-                    reports = reportDao.findAll();
-                }
-
+            try {
+                List<Report> reports = USER_REPORT_CACHE.get(user.getId(), () -> {
+                    Span cacheSpan = tracer.spanBuilder("loadReportsFromDatabase").startSpan();
+                    try (Scope cacheScope = cacheSpan.makeCurrent()) {
+                        List<Report> reportList;
+                        if (Constants.SYS_ROLE_VIEWER.equals(user.getSysRole())) {
+                            reportList = reportDao.findByViewer(user.getId());
+                        } else {
+                            reportList = reportDao.findAll();
+                        }
+                        cacheSpan.addEvent("Reports loaded from database");
+                        return reportList;
+                    } finally {
+                        cacheSpan.end();
+                    }
+                });
+                span.addEvent("Reports retrieved from cache");
                 return reports;
-            });
-            return rt;
-        } catch (ExecutionException | CacheLoader.InvalidCacheLoadException e) {
-            return Collections.emptyList();
+            } catch (ExecutionException | CacheLoader.InvalidCacheLoadException e) {
+                span.addEvent("Cache load exception");
+                return Collections.emptyList();
+            }
+        } finally {
+            span.end();
         }
     }
 
     public void invalidateCache(long userId) {
-        USER_REPORT_CACHE.invalidate(userId);
+        Span span = tracer.spanBuilder("invalidateCache").startSpan();
+        try (Scope scope = span.makeCurrent()) {
+            USER_REPORT_CACHE.invalidate(userId);
+            span.addEvent("Cache invalidated for userId: " + userId);
+        } finally {
+            span.end();
+        }
     }
 }
