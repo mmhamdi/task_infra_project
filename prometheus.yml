@@ -1,9 +1,9 @@
 global:
   scrape_interval: 15s
+  evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'poli'
-    scrape_interval: 15s
-    metrics_path: /metrics
+  - job_name: 'poli-application'
+    metrics_path: '/'
     static_configs:
       - targets: ['poli:9091']

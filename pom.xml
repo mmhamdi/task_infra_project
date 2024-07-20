@@ -100,13 +100,6 @@
             <artifactId>opentelemetry-exporter-logging</artifactId>
             <version>1.12.0</version>
         </dependency>
-
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-zipkin</artifactId>
-            <version>1.12.0</version>
-        </dependency>
-
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporter-prometheus</artifactId>
@@ -118,8 +111,26 @@
             <artifactId>opentelemetry-semconv</artifactId>
             <version>1.12.0-alpha</version>
         </dependency>
-
-
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <version>1.5.10</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <version>1.5.10</version>   
+        </dependency>
+        <dependency>
+            <groupId>com.github.loki4j</groupId>
+            <artifactId>loki-logback-appender</artifactId>
+            <version>1.4.1</version>    
+        </dependency>
+        <dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-classic</artifactId>
+    <version>1.2.3</version> <!-- or the version you're using -->
+</dependency>
     </dependencies>
 
     <build>

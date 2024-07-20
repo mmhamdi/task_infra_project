@@ -43,8 +43,10 @@ public class ReportService {
 
     public List<Report> getReportsByUser(User user) {
         Span span = tracer.spanBuilder("getReportsByUser").startSpan();
+        LOGGER.info("Starting getReportsByUser method for user: {}", user);
         try (Scope scope = span.makeCurrent()) {
             if (StringUtils.isEmpty(user)) {
+                LOGGER.warn("Empty user provided to getReportsByUser");
                 span.addEvent("Empty user");
                 return Collections.emptyList();
             }
@@ -52,6 +54,7 @@ public class ReportService {
             try {
                 List<Report> reports = USER_REPORT_CACHE.get(user.getId(), () -> {
                     Span cacheSpan = tracer.spanBuilder("loadReportsFromDatabase").startSpan();
+                    LOGGER.info("Loading reports from database for user: {}", user.getId());
                     try (Scope cacheScope = cacheSpan.makeCurrent()) {
                         List<Report> reportList;
                         if (Constants.SYS_ROLE_VIEWER.equals(user.getSysRole())) {
@@ -60,27 +63,33 @@ public class ReportService {
                             reportList = reportDao.findAll();
                         }
                         cacheSpan.addEvent("Reports loaded from database");
+                        LOGGER.info("Reports loaded from database for user: {}", user.getId());
                         return reportList;
                     } finally {
                         cacheSpan.end();
                     }
                 });
                 span.addEvent("Reports retrieved from cache");
+                LOGGER.info("Reports retrieved from cache for user: {}", user.getId());
                 return reports;
             } catch (ExecutionException | CacheLoader.InvalidCacheLoadException e) {
+                LOGGER.error("Error retrieving reports from cache for user: {}", user.getId(), e);
                 span.addEvent("Cache load exception");
                 return Collections.emptyList();
             }
         } finally {
             span.end();
+            LOGGER.info("Completed getReportsByUser method for user: {}", user);
         }
     }
 
     public void invalidateCache(long userId) {
         Span span = tracer.spanBuilder("invalidateCache").startSpan();
+        LOGGER.info("Invalidating cache for userId: {}", userId);
         try (Scope scope = span.makeCurrent()) {
             USER_REPORT_CACHE.invalidate(userId);
             span.addEvent("Cache invalidated for userId: " + userId);
+            LOGGER.info("Cache invalidated for userId: {}", userId);
         } finally {
             span.end();
         }

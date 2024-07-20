@@ -8,7 +8,6 @@ import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.exporter.jaeger.JaegerGrpcSpanExporter;
 import io.opentelemetry.exporter.logging.LoggingSpanExporter;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
-import io.opentelemetry.exporter.zipkin.ZipkinSpanExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.OpenTelemetrySdkBuilder;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
@@ -33,7 +32,6 @@ public class OpenTelemetryConfiguration {
                 .setTracerProvider(
                         SdkTracerProvider.builder()
                                 .addSpanProcessor(SimpleSpanProcessor.create(getJaegerExporter()))
-                                .addSpanProcessor(SimpleSpanProcessor.create(getZipkinSpanExporter()))
                                 .addSpanProcessor(SimpleSpanProcessor.create(LoggingSpanExporter.create()))
                                 .setResource(Resource.getDefault().merge(serviceNameResource))
                                 .build())
@@ -44,7 +42,7 @@ public class OpenTelemetryConfiguration {
     @Bean
 
 	public JaegerGrpcSpanExporter getJaegerExporter(){
-    		String jaegerEndpoint = "http://jaeger:14250"; // Correct endpoint
+    		String jaegerEndpoint = "http://jaeger:14250";
     	return JaegerGrpcSpanExporter.builder()
             .setEndpoint(jaegerEndpoint)
             .setTimeout(30, TimeUnit.SECONDS)
@@ -52,14 +50,8 @@ public class OpenTelemetryConfiguration {
 }
 
     @Bean
-    public ZipkinSpanExporter getZipkinSpanExporter(){
-        String zipkinEndpoint = "http://localhost:9411/api/v2/spans";
-        return ZipkinSpanExporter.builder().setEndpoint(zipkinEndpoint).build();
-    }
-
-    @Bean
     public Tracer getTracer(){
-        return getOpenTelemetry().getTracer("test");
+        return getOpenTelemetry().getTracer("poli");
     }
 
     @Bean
@@ -68,5 +60,10 @@ public class OpenTelemetryConfiguration {
                 PrometheusHttpServer.builder().setPort(9091).newMetricReaderFactory();
 
         return SdkMeterProvider.builder().registerMetricReader(prometheusReaderFactory).build();
+    }
+
+    @Bean
+    public LoggingSpanExporter getLoggingExporter() {
+        return LoggingSpanExporter.create();
     }
 }

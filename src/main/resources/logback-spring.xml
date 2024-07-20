@@ -1,25 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+<appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+    <http>
+        <url>http://loki:3100/loki/api/v1/push</url>
+    </http>
+</appender>
 
-        <file>log/server.log</file>
+<root level="INFO">
+    <appender-ref ref="LOKI" />
+</root>
 
-        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <Pattern>
-                %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
-            </Pattern>
-        </encoder>
-
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>log/server-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>3MB</maxFileSize>
-            <maxHistory>5</maxHistory>
-            <totalSizeCap>15MB</totalSizeCap>
-        </rollingPolicy>
-
-    </appender>
-
-    <root level="INFO">
-        <appender-ref ref="ROLLING" />
-    </root>
 </configuration>

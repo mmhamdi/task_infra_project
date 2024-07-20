@@ -7,6 +7,7 @@ import com.shzlw.poli.dao.ReportDao;
 import com.shzlw.poli.dao.SharedReportDao;
 import com.shzlw.poli.dao.UserFavouriteDao;
 import com.shzlw.poli.dto.ExportRequest;
+import com.shzlw.poli.metrics.CustomMetrics;
 import com.shzlw.poli.model.Report;
 import com.shzlw.poli.model.SharedReport;
 import com.shzlw.poli.model.User;
@@ -60,17 +61,21 @@ public class ReportWs {
     @Autowired
     ObjectMapper mapper;
 
+    @Autowired
+    private CustomMetrics customMetrics; // Inject CustomMetrics
+
     @RequestMapping(method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(readOnly = true)
     public List<Report> findAll(HttpServletRequest request) {
+        customMetrics.getRequestCounter().add(1); // Record a request
         User user = (User) request.getAttribute(Constants.HTTP_REQUEST_ATTR_USER);
         return reportService.getReportsByUser(user);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(readOnly = true)
-    public Report findOneById(@PathVariable("id") long id,
-                              HttpServletRequest request) {
+    public Report findOneById(@PathVariable("id") long id, HttpServletRequest request) {
+        customMetrics.getRequestCounter().add(1); // Record a request
         List<Report> reports = findAll(request);
         Report report = reports.stream().filter(d -> d.getId() == id).findFirst().orElse(null);
         if (report != null) {
@@ -79,14 +84,14 @@ public class ReportWs {
             report.setFavourite(isFavourite);
             return report;
         }
-
+        customMetrics.getErrorCounter().add(1); // Record an error
         return null;
     }
 
     @RequestMapping(value = "/name/{name}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(readOnly = true)
-    public Report findOneByName(@PathVariable("name") String name,
-                                HttpServletRequest request) {
+    public Report findOneByName(@PathVariable("name") String name, HttpServletRequest request) {
+        customMetrics.getRequestCounter().add(1); // Record a request
         List<Report> reports = findAll(request);
         return reports.stream().filter(d -> d.getName().equals(name)).findFirst().orElse(null);
     }
@@ -94,12 +99,15 @@ public class ReportWs {
     @RequestMapping(value = "/sharekey/{shareKey}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(readOnly = true)
     public Report findOneBySharekey(@PathVariable("shareKey") String shareKey) {
+        customMetrics.getRequestCounter().add(1); // Record a request
         SharedReport sharedReport = sharedReportDao.findByShareKey(shareKey);
         if (sharedReport == null) {
+            customMetrics.getErrorCounter().add(1); // Record an error
             return null;
         }
 
         if (sharedReport.getExpiredBy() < CommonUtils.toEpoch(LocalDateTime.now())) {
+            customMetrics.getErrorCounter().add(1); // Record an error
             return null;
         }
 
@@ -108,28 +116,29 @@ public class ReportWs {
 
     @RequestMapping(method = RequestMethod.POST)
     @Transactional
-    public ResponseEntity<Long> add(@RequestBody Report report,
-                                    HttpServletRequest request) {
+    public ResponseEntity<Long> add(@RequestBody Report report, HttpServletRequest request) {
+        customMetrics.getRequestCounter().add(1); // Record a request
         User user = (User) request.getAttribute(Constants.HTTP_REQUEST_ATTR_USER);
         reportService.invalidateCache(user.getId());
         long id = reportDao.insert(report.getName(), report.getStyle(), report.getProject());
-        return new ResponseEntity<Long>(id, HttpStatus.CREATED);
+        return new ResponseEntity<>(id, HttpStatus.CREATED);
     }
 
     @RequestMapping(method = RequestMethod.PUT)
     @Transactional
-    public ResponseEntity<?> update(@RequestBody Report report,
-                                    HttpServletRequest request) {
+    public ResponseEntity<?> update(@RequestBody Report report, HttpServletRequest request) {
+        customMetrics.getRequestCounter().add(1); // Record a request
         User user = (User) request.getAttribute(Constants.HTTP_REQUEST_ATTR_USER);
         reportService.invalidateCache(user.getId());
         reportDao.update(report);
+        customMetrics.getUpdateCounter().add(1); // Record an update
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
     @Transactional
-    public ResponseEntity<?> delete(@PathVariable("id") long reportId,
-                                    HttpServletRequest request) {
+    public ResponseEntity<?> delete(@PathVariable("id") long reportId, HttpServletRequest request) {
+        customMetrics.getRequestCounter().add(1); // Record a request
         User user = (User) request.getAttribute(Constants.HTTP_REQUEST_ATTR_USER);
         reportService.invalidateCache(user.getId());
         sharedReportService.invalidateSharedLinkInfoCacheByReportId(reportId);
@@ -137,14 +146,13 @@ public class ReportWs {
         userFavouriteDao.deleteByReportId(reportId);
         componentDao.deleteByReportId(reportId);
         reportDao.delete(reportId);
-        return new ResponseEntity<String>(HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @RequestMapping(value = "/favourite/{id}/{status}", method = RequestMethod.POST)
     @Transactional
-    public void updateFavourite(@PathVariable("id") long reportId,
-                                @PathVariable("status") String status,
-                                HttpServletRequest request) {
+    public void updateFavourite(@PathVariable("id") long reportId, @PathVariable("status") String status, HttpServletRequest request) {
+        customMetrics.getRequestCounter().add(1); // Record a request
         User user = (User) request.getAttribute(Constants.HTTP_REQUEST_ATTR_USER);
         long userId = user.getId();
         if (status.equals("add")) {
@@ -159,18 +167,15 @@ public class ReportWs {
     @RequestMapping(value = "/favourite", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(readOnly = true)
     public List<Report> findAllFavourites(HttpServletRequest request) {
+        customMetrics.getRequestCounter().add(1); // Record a request
         User user = (User) request.getAttribute(Constants.HTTP_REQUEST_ATTR_USER);
         return reportDao.findFavouritesByUserId(user.getId());
     }
 
-    @RequestMapping(
-            value = "/pdf",
-            method = RequestMethod.POST,
-            produces = MediaType.APPLICATION_PDF_VALUE)
+    @RequestMapping(value = "/pdf", method = RequestMethod.POST, produces = MediaType.APPLICATION_PDF_VALUE)
     @Transactional(readOnly = true)
-    public ResponseEntity<?> exportToPdf(@RequestBody ExportRequest exportRequest,
-                                         HttpServletRequest request) {
-
+    public ResponseEntity<?> exportToPdf(@RequestBody ExportRequest exportRequest, HttpServletRequest request) {
+        customMetrics.getRequestCounter().add(1); // Record a request
         User user = (User) request.getAttribute(Constants.HTTP_REQUEST_ATTR_USER);
         exportRequest.setSessionKey(user.getSessionKey());
 
@@ -191,7 +196,8 @@ public class ReportWs {
                     .contentType(MediaType.parseMediaType("application/octet-stream"))
                     .body(resource);
         } catch (IOException e) {
-            return new ResponseEntity<String>(HttpStatus.NO_CONTENT);
+            customMetrics.getErrorCounter().add(1); // Record an error
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
     }
 }
