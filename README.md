@@ -198,11 +198,27 @@ OpenTelemetry is an open-source framework that provides APIs, libraries, and age
         return openTelemetrySdkBuilder.buildAndRegisterGlobal();
     }
     ``` 
-   - Integrated OpenTelemetry with Jaeger for tracing, Prometheus for metrics.
+   - Integrated OpenTelemetry with Jaeger for tracing, Prometheus for metrics:
+   - **Integrated OpenTelemetry with Jaeger for tracing**:
+     - **Jaeger Exporter**: Configured with endpoint `http://jaeger:14250` to send trace data to Jaeger for visualization.
+   - **Prometheus for metrics**:
+     - **Prometheus HTTP Server**: Set up on port 9091 to allow Prometheus to scrape and collect application metrics.
+   - **OTLP for logging**:
+     - **OTLP Log Exporter**: Configured to send logs to the OTLP collector endpoint at `http://otel-collector:4317`.
 
-By combining service instrumentation with OpenTelemetry, Jaeger, Prometheus, Grafana, and Loki, this project ensures a robust and comprehensive observability solution that enhances the reliability and performance of the `poli` application.
+
+ 4. **Tracing Implementation in Endpoints**:
+
+Following the OpenTelemetry configuration, I have added detailed tracing to several key endpoints across different layers within the application: 
+   - controller: to Monitors HTTP request handling, tracks request processing time, and captures endpoint performance metrics.   
+   - service: Observes business logic execution and interactions between services.  
+   - repository: Focuses on database operations and query performance .
+
+ - **Instrumented Endpoints**:
+        - *Reports* : [ReportWs.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/rest/ReportWs.java) ,[ReportService.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/service/ReportService.java) , [ReportDao.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/dao/ReportDao.java)
+        - *JdbcDataSource* : [JdbcDataSourceWs.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/rest/JdbcDataSourceWs.java) ,[JdbcDataSourceService.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/service/JdbcDataSourceService.java) , [JdbcDataSourceDao.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/dao/JdbcDataSourceDao.java)
+        - *User* :  [ReportWs.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/rest/UserWs.java) ,[UserService.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/service/UserService.java) , [UserDao.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/dao/UserDao.java)
 
 
-#### realisation :
 
 
