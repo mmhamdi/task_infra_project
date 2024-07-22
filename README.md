@@ -166,6 +166,20 @@ OpenTelemetry is an open-source framework that provides APIs, libraries, and age
    ```
 
 3. **OpenTelemetry Configuration**:
+   - Add OpenTelemetry SDK and API dependencies :
+     ```bash
+             <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+            <version>1.12.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-sdk</artifactId>
+            <version>1.12.0</version>
+        </dependency>
+     ```
    - Configured the OpenTelemetry SDK inside the `config` package [OpenTelemetryConfiguration.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/OpenTelemetryConfiguration.java) of the `poli` application:
      - **OpenTelemetry SDK Bean**:
        - **`OpenTelemetrySdk`**: Configured with tracing, logging, and metrics components.
@@ -189,25 +203,45 @@ OpenTelemetry is an open-source framework that provides APIs, libraries, and age
                                 .addSpanProcessor(SimpleSpanProcessor.create(LoggingSpanExporter.create()))
                                 .setResource(Resource.getDefault().merge(serviceNameResource))
                                 .build())
-                .setLogEmitterProvider(
-                        SdkLogEmitterProvider.builder()
-                        .addLogProcessor(SimpleLogProcessor.create(getOtlpLogExporter()))
-                        .setResource(Resource.getDefault().merge(serviceNameResource))
-                        .build())
                 .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()));
         return openTelemetrySdkBuilder.buildAndRegisterGlobal();
     }
     ``` 
    - Integrated OpenTelemetry with Jaeger for tracing, Prometheus for metrics:
-   - **Integrated OpenTelemetry with Jaeger for tracing**:
+  
+   - **Add the specific dependencies for exporters** :
+     ```bash
+     <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-jaeger</artifactId>
+            <version>1.12.0</version>
+     </dependency>
+      <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-prometheus</artifactId>
+            <version>1.12.0-alpha</version>
+     </dependency>
+     <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp-logs</artifactId>
+            <version>1.12.0-alpha</version>
+        </dependency>
+     ```
+     
+   - **Integrated OpenTelemetry with Jaeger for tracing**: 
+     
      - **Jaeger Exporter**: Configured with endpoint `http://jaeger:14250` to send trace data to Jaeger for visualization.
+       
    - **Prometheus for metrics**:
+     
      - **Prometheus HTTP Server**: Set up on port 9091 to allow Prometheus to scrape and collect application metrics.
+       
    - **OTLP for logging**:
+     
      - **OTLP Log Exporter**: Configured to send logs to the OTLP collector endpoint at `http://otel-collector:4317`.
 
 
- 4. **Tracing Implementation in Endpoints**:
+ 5. **Tracing Implementation in Endpoints**:
 
 Following the OpenTelemetry configuration, I have added detailed tracing to several key endpoints across different layers within the application: 
    - Controller: to Monitors HTTP request handling, tracks request processing time, and captures endpoint performance metrics.   
@@ -258,11 +292,70 @@ services:
     <p align="center">
       <img src="images/span_test1.PNG" alt="image" width="900" height="400">
     </p>
+    
+## Metrics
 
+Custom metrics are integrated into the `poli` application to provide detailed insights into various aspects of the system's performance and operations. The `CustomMetrics` class, located in the `com.shzlw.poli.metrics` package, defines and manages these metrics. Below is an overview of the custom metrics and their integration across different application layers:
 
-   
-  
-  
-   
+### CustomMetrics Class
 
+The `CustomMetrics` class initializes and provides access to various custom metrics:
+
+#### Counters
+- **`requestCounter`**: Total number of HTTP requests.
+- **`errorCounter`**: Total number of HTTP request errors.
+- **`updateCounter`**: Total number of reports updates.
+- **`dbQueryCounter`**: Total number of database queries executed.
+- **`dbFailedQueryCounter`**: Total number of failed database queries.
+- **`serviceMethodCounter`**: Total number of times a specific service method is called.
+- **`serviceOperationSuccessCounter`**: Total number of successful service operations.
+- **`serviceOperationFailureCounter`**: Total number of failed service operations.
+- **`cacheHitCounter`**: Total number of cache hits.
+- **`cacheMissCounter`**: Total number of cache misses.
+
+#### UpDownCounters (used as gauges)
+- **`activeSessionsCounter`**: Number of active user sessions.
+
+#### Histograms
+- **`requestSizeHistogram`**: Histogram of HTTP request sizes.
+
+### Integration into Application Layers
+
+Metrics are integrated across different layers of the application to provide comprehensive insights:
+
+#### Controller Layer
+- **HTTP Request Metrics**: Track the total number of requests and errors at the controller level using `requestCounter` and `errorCounter`.
+- **Request Size**: Measure the size of HTTP requests with `requestSizeHistogram`.
+
+#### Service Layer
+- **Service Method Metrics**: Count the number of times a service method is called using `serviceMethodCounter`.
+- **Service Operation Success and Failure**: Track successful and failed service operations with `serviceOperationSuccessCounter` and `serviceOperationFailureCounter`.
+
+#### Repository Layer
+- **Database Query Metrics**: Count the total number of database queries and failed queries using `dbQueryCounter` and `dbFailedQueryCounter`.
+- **Cache Metrics**: Measure the performance of caching mechanisms with `cacheHitCounter` and `cacheMissCounter`.
+
+This setup allows for detailed monitoring and analysis of application performance, helping identify and address potential issues efficiently.
+### Testing Metrics in Prometheus
+
+To ensure that the custom metrics are being collected and exposed correctly in Prometheus i configure prometheus.yml file :
+
+```bash
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'poli-custom-metrics'
+    metrics_path: '/'
+    static_configs:
+      - targets: ['poli:9091']
+```
+1.**Check Service Health in Prometheus** :
+
+  </p>
+   - Analyze Trace Details:
+    <p align="center">
+      <img src="images/span_test1.PNG" alt="image" width="900" height="400">
+    </p>
 
