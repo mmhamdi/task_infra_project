@@ -6,6 +6,9 @@ import com.shzlw.poli.model.Group;
 import com.shzlw.poli.model.Report;
 import com.shzlw.poli.model.User;
 import com.shzlw.poli.util.Constants;
+
+import io.opentelemetry.api.trace.Tracer;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,6 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ReportWsTest extends AbstractWsTest {
    @Autowired
     private CustomMetrics customMetrics;
+ @Autowired
+    private Tracer tracer;
 
     @Test
     public void test() throws Exception {

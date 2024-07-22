@@ -1,6 +1,10 @@
 package com.shzlw.poli.dao;
 
+import com.shzlw.poli.metrics.CustomMetrics;
 import com.shzlw.poli.model.Report;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,89 +23,190 @@ import java.util.List;
 public class ReportDao {
 
     @Autowired
-    JdbcTemplate jt;
+    private JdbcTemplate jt;
 
     @Autowired
-    NamedParameterJdbcTemplate npjt;
+    private NamedParameterJdbcTemplate npjt;
+
+    @Autowired
+    private Tracer tracer;
+
+    @Autowired
+    private CustomMetrics customMetrics;
 
     public List<Report> findAll() {
-        String sql = "SELECT id, name, style, project FROM p_report";
-        return jt.query(sql, new Object[] {}, new ReportRowMapper());
+        Span span = tracer.spanBuilder("findAllReports").startSpan();
+        long startTime = System.currentTimeMillis();
+
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "SELECT id, name, style, project FROM p_report";
+            List<Report> result = jt.query(sql, new ReportRowMapper());
+
+            customMetrics.getDbQueryCounter().add(1);
+            return result;
+        } catch (Exception e) {
+            customMetrics.getDbFailedQueryCounter().add(1);
+            throw e;
+        } finally {
+            long endTime = System.currentTimeMillis();
+            span.end();
+        }
     }
 
     public List<Report> findByViewer(long userId) {
-        String sql = "SELECT d.id, d.name, d.style, d.project "
-                    + "FROM p_group_report gd, p_report d, p_group_user gu "
-                    + "WHERE gd.report_id = d.id "
-                    + "AND gd.group_id = gu.group_id "
-                    + "AND gu.user_id = ?";
-        return jt.query(sql, new Object[] { userId }, new ReportRowMapper());
+        Span span = tracer.spanBuilder("findByViewer").startSpan();
+        long startTime = System.currentTimeMillis();
+
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "SELECT d.id, d.name, d.style, d.project "
+                        + "FROM p_group_report gd, p_report d, p_group_user gu "
+                        + "WHERE gd.report_id = d.id "
+                        + "AND gd.group_id = gu.group_id "
+                        + "AND gu.user_id = ?";
+            List<Report> result = jt.query(sql, new Object[] { userId }, new ReportRowMapper());
+
+            customMetrics.getDbQueryCounter().add(1);
+            return result;
+        } catch (Exception e) {
+            customMetrics.getDbFailedQueryCounter().add(1);
+            throw e;
+        } finally {
+            long endTime = System.currentTimeMillis();
+            span.end();
+        }
     }
 
     public Report findById(long id) {
-        String sql = "SELECT id, name, style, project FROM p_report WHERE id=?";
-        try {
-            return (Report) jt.queryForObject(sql, new Object[]{ id }, new ReportRowMapper());
-        } catch (EmptyResultDataAccessException e) {
-            return null;
+        Span span = tracer.spanBuilder("findReportById").startSpan();
+
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "SELECT id, name, style, project FROM p_report WHERE id=?";
+            try {
+                Report report = jt.queryForObject(sql, new Object[]{ id }, new ReportRowMapper());
+                customMetrics.getDbQueryCounter().add(1);
+                return report;
+            } catch (EmptyResultDataAccessException e) {
+                customMetrics.getDbFailedQueryCounter().add(1);
+                return null;
+            }
+        } catch (Exception e) {
+            customMetrics.getDbFailedQueryCounter().add(1);
+            throw e;
+        } finally {
+            span.end();
         }
     }
 
     public List<Report> findFavouritesByUserId(long userId) {
-        String sql = "SELECT r.id, r.name, r.project "
-                    + "FROM p_report r, p_user_favourite uf "
-                    + "WHERE r.id = uf.report_id "
-                    + "AND uf.user_id = ?";
-        return jt.query(sql, new Object[] { userId }, (rs, i) -> {
-            Report r = new Report();
-            r.setId(rs.getLong(Report.ID));
-            r.setName(rs.getString(Report.NAME));
-            r.setProject(rs.getString(Report.PROJECT));
-            return r;
-        });
+        Span span = tracer.spanBuilder("findFavouritesByUserId").startSpan();
+
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "SELECT r.id, r.name, r.project "
+                        + "FROM p_report r, p_user_favourite uf "
+                        + "WHERE r.id = uf.report_id "
+                        + "AND uf.user_id = ?";
+            List<Report> result = jt.query(sql, new Object[] { userId }, new ReportRowMapper());
+
+            customMetrics.getDbQueryCounter().add(1);
+            return result;
+        } catch (Exception e) {
+            customMetrics.getDbFailedQueryCounter().add(1);
+            throw e;
+        } finally {
+            span.end();
+        }
     }
 
     public Report findByName(String name) {
-        String sql = "SELECT id, name, style, project FROM p_report WHERE name=?";
-        try {
-            return (Report) jt.queryForObject(sql, new Object[]{ name }, new ReportRowMapper());
-        } catch (EmptyResultDataAccessException e) {
-            return null;
+        Span span = tracer.spanBuilder("findReportByName").startSpan();
+
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "SELECT id, name, style, project FROM p_report WHERE name=?";
+            try {
+                Report report = jt.queryForObject(sql, new Object[]{ name }, new ReportRowMapper());
+                customMetrics.getDbQueryCounter().add(1);
+                return report;
+            } catch (EmptyResultDataAccessException e) {
+                customMetrics.getDbFailedQueryCounter().add(1);
+                return null;
+            }
+        } catch (Exception e) {
+            customMetrics.getDbFailedQueryCounter().add(1);
+            throw e;
+        } finally {
+            span.end();
         }
     }
 
     public long insert(String name, String style, String project) {
-        String sql = "INSERT INTO p_report(name, style, project) VALUES(:name, :style, :project)";
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue(Report.NAME, name);
-        params.addValue(Report.STYLE, style);
-        params.addValue(Report.PROJECT, project);
+        Span span = tracer.spanBuilder("insertReport").startSpan();
 
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        npjt.update(sql, params, keyHolder, new String[] { Report.ID});
-        return keyHolder.getKey().longValue();
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "INSERT INTO p_report(name, style, project) VALUES(:name, :style, :project)";
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue(Report.NAME, name);
+            params.addValue(Report.STYLE, style);
+            params.addValue(Report.PROJECT, project);
+
+            KeyHolder keyHolder = new GeneratedKeyHolder();
+            npjt.update(sql, params, keyHolder, new String[] { Report.ID});
+            customMetrics.getDbQueryCounter().add(1);
+            return keyHolder.getKey().longValue();
+        } catch (Exception e) {
+            customMetrics.getDbFailedQueryCounter().add(1);
+            throw e;
+        } finally {
+            span.end();
+        }
     }
 
     public int update(Report r) {
-        String sql = "UPDATE p_report SET name=?, style=?, project=? WHERE id=?";
-        return jt.update(sql, new Object[] { r.getName(), r.getStyle(), r.getProject(), r.getId() });
+        Span span = tracer.spanBuilder("updateReport").startSpan();
+        long startTime = System.currentTimeMillis();
+
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "UPDATE p_report SET name=?, style=?, project=? WHERE id=?";
+            int result = jt.update(sql, new Object[] { r.getName(), r.getStyle(), r.getProject(), r.getId() });
+
+            customMetrics.getDbQueryCounter().add(1);
+            return result;
+        } catch (Exception e) {
+            customMetrics.getDbFailedQueryCounter().add(1);
+            throw e;
+        } finally {
+            long endTime = System.currentTimeMillis();
+            span.end();
+        }
     }
 
     public int delete(long id) {
-        String sql = "DELETE FROM p_report WHERE id=?";
-        return jt.update(sql, new Object[]{ id });
+        Span span = tracer.spanBuilder("deleteReport").startSpan();
+        long startTime = System.currentTimeMillis();
+
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "DELETE FROM p_report WHERE id=?";
+            int result = jt.update(sql, id);
+
+            customMetrics.getDbQueryCounter().add(1);
+            return result;
+        } catch (Exception e) {
+            customMetrics.getDbFailedQueryCounter().add(1);
+            throw e;
+        } finally {
+            long endTime = System.currentTimeMillis();
+            span.end();
+        }
     }
 
     private static class ReportRowMapper implements RowMapper<Report> {
-
         @Override
-        public Report mapRow(ResultSet rs, int i) throws SQLException {
-            Report r = new Report();
-            r.setId(rs.getLong(Report.ID));
-            r.setName(rs.getString(Report.NAME));
-            r.setStyle(rs.getString(Report.STYLE));
-            r.setProject(rs.getString(Report.PROJECT));
-            return r;
+        public Report mapRow(ResultSet rs, int rowNum) throws SQLException {
+            Report report = new Report();
+            report.setId(rs.getLong("id"));
+            report.setName(rs.getString("name"));
+            report.setStyle(rs.getString("style"));
+            report.setProject(rs.getString("project"));
+            return report;
         }
     }
 }

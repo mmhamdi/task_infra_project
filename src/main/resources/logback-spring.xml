@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-<appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-    <http>
-        <url>http://loki:3100/loki/api/v1/push</url>
-    </http>
-</appender>
-
-<root level="INFO">
-    <appender-ref ref="LOKI" />
-</root>
-
+    <!-- Default logback configuration -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <property name="LOG_FILE" value="${LOG_FILE:-${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}}/spring.log}"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <include resource="org/springframework/boot/logging/logback/file-appender.xml"/>
+    
+    <!-- Add the OpenTelemetry appender -->
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.v1_0.OpenTelemetryAppender">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </appender>
+    
+    <root level="INFO">
+        <appender-ref ref="OTEL"/>
+    </root>
 </configuration>

@@ -121,16 +121,18 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
             <version>1.5.10</version>   
         </dependency>
+    
         <dependency>
-            <groupId>com.github.loki4j</groupId>
-            <artifactId>loki-logback-appender</artifactId>
-            <version>1.4.1</version>    
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp-logs</artifactId>
+            <version>1.12.0-alpha</version>
         </dependency>
         <dependency>
-    <groupId>ch.qos.logback</groupId>
-    <artifactId>logback-classic</artifactId>
-    <version>1.2.3</version> <!-- or the version you're using -->
-</dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-logback-mdc-1.0</artifactId>
+            <version>1.12.0-alpha</version>
+        </dependency>
+
     </dependencies>
 
     <build>

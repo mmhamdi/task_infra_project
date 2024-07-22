@@ -2,8 +2,12 @@ package com.shzlw.poli.rest;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.shzlw.poli.dao.UserDao;
+import com.shzlw.poli.metrics.CustomMetrics;
 import com.shzlw.poli.model.User;
 import com.shzlw.poli.util.Constants;
+
+import io.opentelemetry.api.trace.Tracer;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,6 +33,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(locations="classpath:application-test.properties")
 @Sql(scripts = "classpath:schema-sqlite.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 public class UserWsTest extends AbstractWsTest {
+
+     @Autowired
+    private CustomMetrics customMetrics;
+     @Autowired
+    private Tracer tracer;
 
     @Autowired
     UserDao userDao;

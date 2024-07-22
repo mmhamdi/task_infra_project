@@ -5,6 +5,9 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.shzlw.poli.dao.UserDao;
 import com.shzlw.poli.model.User;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,9 @@ import java.util.concurrent.TimeUnit;
 public class UserService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
+    @Autowired
+    Tracer tracer ;
+
     /**
      * Key: Session key
      * Value: User
@@ -42,15 +48,23 @@ public class UserService {
             return null;
         }
 
+        Span span = tracer.spanBuilder("getUserBySessionKey").startSpan();
         try {
-            User user = SESSION_USER_CACHE.get(sessionKey, () -> {
-                User u = userDao.findBySessionKey(sessionKey);
-                u.setUserAttributes(userDao.findUserAttributes(u.getId()));
-                return u;
+            return SESSION_USER_CACHE.get(sessionKey, () -> {
+                Span cacheSpan = tracer.spanBuilder("cacheLoader").startSpan();
+                try {
+                    User u = userDao.findBySessionKey(sessionKey);
+                    u.setUserAttributes(userDao.findUserAttributes(u.getId()));
+                    return u;
+                } finally {
+                    cacheSpan.end();
+                }
             });
-            return user;
         } catch (ExecutionException | CacheLoader.InvalidCacheLoadException e) {
+            LOGGER.error("Failed to load user by session key", e);
             return null;
+        } finally {
+            span.end();
         }
     }
 
@@ -59,32 +73,55 @@ public class UserService {
             return null;
         }
 
+        Span span = tracer.spanBuilder("getUserByApiKey").startSpan();
         try {
-            User user = API_KEY_USER_CACHE.get(apiKey, () -> {
-                User u = userDao.findByApiKey(apiKey);
-                u.setUserAttributes(userDao.findUserAttributes(u.getId()));
-                return u;
+            return API_KEY_USER_CACHE.get(apiKey, () -> {
+                Span cacheSpan = tracer.spanBuilder("cacheLoader").startSpan();
+                try {
+                    User u = userDao.findByApiKey(apiKey);
+                    u.setUserAttributes(userDao.findUserAttributes(u.getId()));
+                    return u;
+                } finally {
+                    cacheSpan.end();
+                }
             });
-            return user;
         } catch (ExecutionException | CacheLoader.InvalidCacheLoadException e) {
+            LOGGER.error("Failed to load user by API key", e);
             return null;
+        } finally {
+            span.end();
         }
     }
 
     public void newOrUpdateUser(User user, String oldSessionKey, String newSessionKey) {
-        invalidateSessionUserCache(oldSessionKey);
-        SESSION_USER_CACHE.put(newSessionKey, user);
+        Span span = tracer.spanBuilder("newOrUpdateUser").startSpan();
+        try {
+            invalidateSessionUserCache(oldSessionKey);
+            SESSION_USER_CACHE.put(newSessionKey, user);
+        } finally {
+            span.end();
+        }
     }
 
     public void invalidateSessionUserCache(String sessionKey) {
-        if (sessionKey != null) {
-            SESSION_USER_CACHE.invalidate(sessionKey);
+        Span span = tracer.spanBuilder("invalidateSessionUserCache").startSpan();
+        try {
+            if (sessionKey != null) {
+                SESSION_USER_CACHE.invalidate(sessionKey);
+            }
+        } finally {
+            span.end();
         }
     }
 
     public void invalidateApiKeyUserCache(String apiKey) {
-        if (apiKey != null) {
-            API_KEY_USER_CACHE.invalidate(apiKey);
+        Span span = tracer.spanBuilder("invalidateApiKeyUserCache").startSpan();
+        try {
+            if (apiKey != null) {
+                API_KEY_USER_CACHE.invalidate(apiKey);
+            }
+        } finally {
+            span.end();
         }
     }
 }

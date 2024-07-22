@@ -2,6 +2,10 @@ package com.shzlw.poli.dao;
 
 import com.shzlw.poli.model.JdbcDataSource;
 import com.shzlw.poli.util.PasswordUtils;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,7 +23,10 @@ import java.util.List;
 
 @Repository
 public class JdbcDataSourceDao {
-
+    
+    @Autowired
+    Tracer tracer ;
+    
     @Autowired
     JdbcTemplate jt;
 
@@ -27,76 +34,108 @@ public class JdbcDataSourceDao {
     NamedParameterJdbcTemplate npjt;
 
     public List<JdbcDataSource> findAllWithNoCredentials() {
-        String sql = "SELECT id, name, connection_url, driver_class_name, username, ping FROM p_datasource";
-        return jt.query(sql, new Object[] {}, new JdbcDataSourceInfoMapper());
+        Span span = tracer.spanBuilder("findAllWithNoCredentials").startSpan();
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "SELECT id, name, connection_url, driver_class_name, username, ping FROM p_datasource";
+            return jt.query(sql, new Object[]{}, new JdbcDataSourceInfoMapper());
+        } finally {
+            span.end();
+        }
     }
 
     public JdbcDataSource findByIdWithNoCredentials(long id) {
-        String sql = "SELECT id, name, connection_url, driver_class_name, username, ping FROM p_datasource WHERE id=?";
-        try {
-            return (JdbcDataSource) jt.queryForObject(sql, new Object[]{ id }, new JdbcDataSourceInfoMapper());
-        } catch (EmptyResultDataAccessException e) {
-            return null;
+        Span span = tracer.spanBuilder("findByIdWithNoCredentials").startSpan();
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "SELECT id, name, connection_url, driver_class_name, username, ping FROM p_datasource WHERE id=?";
+            try {
+                return (JdbcDataSource) jt.queryForObject(sql, new Object[]{id}, new JdbcDataSourceInfoMapper());
+            } catch (EmptyResultDataAccessException e) {
+                span.recordException(e);
+                return null;
+            }
+        } finally {
+            span.end();
         }
     }
 
     public JdbcDataSource findById(long id) {
-        String sql = "SELECT id, name, connection_url, driver_class_name, username, password, ping FROM p_datasource WHERE id=?";
-        try {
-            return (JdbcDataSource) jt.queryForObject(sql, new Object[]{ id }, new JdbcDataSourceRowMapper());
-        } catch (EmptyResultDataAccessException e) {
-            return null;
+        Span span = tracer.spanBuilder("findById").startSpan();
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "SELECT id, name, connection_url, driver_class_name, username, password, ping FROM p_datasource WHERE id=?";
+            try {
+                return (JdbcDataSource) jt.queryForObject(sql, new Object[]{id}, new JdbcDataSourceRowMapper());
+            } catch (EmptyResultDataAccessException e) {
+                span.recordException(e);
+                return null;
+            }
+        } finally {
+            span.end();
         }
     }
 
     public long insert(JdbcDataSource ds) {
-        String rawPassword = ds.getPassword();
-        String encryptedPassword = PasswordUtils.getEncryptedPassword(rawPassword);
-        String sql = "INSERT INTO p_datasource(name, connection_url, driver_class_name, username, password, ping) "
-                    + "VALUES(:name, :connection_url, :driver_class_name, :username, :password, :ping)";
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue(JdbcDataSource.NAME, ds.getName());
-        params.addValue(JdbcDataSource.CONNECTION_URL, ds.getConnectionUrl());
-        params.addValue(JdbcDataSource.DRIVER_CLASS_NAME, ds.getDriverClassName());
-        params.addValue(JdbcDataSource.USERNAME, ds.getUsername());
-        params.addValue(JdbcDataSource.PASSWORD, encryptedPassword);
-        params.addValue(JdbcDataSource.PING, ds.getPing());
+        Span span = tracer.spanBuilder("insert").startSpan();
+        try (Scope scope = span.makeCurrent()) {
+            String rawPassword = ds.getPassword();
+            String encryptedPassword = PasswordUtils.getEncryptedPassword(rawPassword);
+            String sql = "INSERT INTO p_datasource(name, connection_url, driver_class_name, username, password, ping) "
+                        + "VALUES(:name, :connection_url, :driver_class_name, :username, :password, :ping)";
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue(JdbcDataSource.NAME, ds.getName());
+            params.addValue(JdbcDataSource.CONNECTION_URL, ds.getConnectionUrl());
+            params.addValue(JdbcDataSource.DRIVER_CLASS_NAME, ds.getDriverClassName());
+            params.addValue(JdbcDataSource.USERNAME, ds.getUsername());
+            params.addValue(JdbcDataSource.PASSWORD, encryptedPassword);
+            params.addValue(JdbcDataSource.PING, ds.getPing());
 
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        npjt.update(sql, params, keyHolder, new String[] { JdbcDataSource.ID});
-        return keyHolder.getKey().longValue();
+            KeyHolder keyHolder = new GeneratedKeyHolder();
+            npjt.update(sql, params, keyHolder, new String[]{JdbcDataSource.ID});
+            return keyHolder.getKey().longValue();
+        } finally {
+            span.end();
+        }
     }
 
     public int update(JdbcDataSource ds) {
-        String rawPassword = ds.getPassword();
-        if (StringUtils.isEmpty(rawPassword)) {
-            String sql = "UPDATE p_datasource SET name=?, connection_url=?, driver_class_name=?, username=?, ping=? WHERE id=?";
-            return jt.update(sql, new Object[]{
-                    ds.getName(),
-                    ds.getConnectionUrl(),
-                    ds.getDriverClassName(),
-                    ds.getUsername(),
-                    ds.getPing(),
-                    ds.getId()
-            });
-        } else {
-            String encryptedPassword = PasswordUtils.getEncryptedPassword(rawPassword);
-            String sql = "UPDATE p_datasource SET name=?, connection_url=?, driver_class_name=?, username=?, password=?, ping=? WHERE id=?";
-            return jt.update(sql, new Object[]{
-                    ds.getName(),
-                    ds.getConnectionUrl(),
-                    ds.getDriverClassName(),
-                    ds.getUsername(),
-                    encryptedPassword,
-                    ds.getPing(),
-                    ds.getId()
-            });
+        Span span = tracer.spanBuilder("update").startSpan();
+        try (Scope scope = span.makeCurrent()) {
+            String rawPassword = ds.getPassword();
+            if (StringUtils.isEmpty(rawPassword)) {
+                String sql = "UPDATE p_datasource SET name=?, connection_url=?, driver_class_name=?, username=?, ping=? WHERE id=?";
+                return jt.update(sql, new Object[]{
+                        ds.getName(),
+                        ds.getConnectionUrl(),
+                        ds.getDriverClassName(),
+                        ds.getUsername(),
+                        ds.getPing(),
+                        ds.getId()
+                });
+            } else {
+                String encryptedPassword = PasswordUtils.getEncryptedPassword(rawPassword);
+                String sql = "UPDATE p_datasource SET name=?, connection_url=?, driver_class_name=?, username=?, password=?, ping=? WHERE id=?";
+                return jt.update(sql, new Object[]{
+                        ds.getName(),
+                        ds.getConnectionUrl(),
+                        ds.getDriverClassName(),
+                        ds.getUsername(),
+                        encryptedPassword,
+                        ds.getPing(),
+                        ds.getId()
+                });
+            }
+        } finally {
+            span.end();
         }
     }
 
     public int delete(long id) {
-        String sql = "DELETE FROM p_datasource WHERE id=?";
-        return jt.update(sql, new Object[]{ id });
+        Span span = tracer.spanBuilder("delete").startSpan();
+        try (Scope scope = span.makeCurrent()) {
+            String sql = "DELETE FROM p_datasource WHERE id=?";
+            return jt.update(sql, new Object[]{id});
+        } finally {
+            span.end();
+        }
     }
 
     private static class JdbcDataSourceInfoMapper implements RowMapper<JdbcDataSource> {

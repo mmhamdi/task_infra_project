@@ -7,9 +7,12 @@ import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.exporter.jaeger.JaegerGrpcSpanExporter;
 import io.opentelemetry.exporter.logging.LoggingSpanExporter;
+import io.opentelemetry.exporter.otlp.logs.OtlpGrpcLogExporter;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.OpenTelemetrySdkBuilder;
+import io.opentelemetry.sdk.logs.SdkLogEmitterProvider;
+import io.opentelemetry.sdk.logs.export.SimpleLogProcessor;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.export.MetricReaderFactory;
 import io.opentelemetry.sdk.resources.Resource;
@@ -35,10 +38,24 @@ public class OpenTelemetryConfiguration {
                                 .addSpanProcessor(SimpleSpanProcessor.create(LoggingSpanExporter.create()))
                                 .setResource(Resource.getDefault().merge(serviceNameResource))
                                 .build())
+                .setLogEmitterProvider(
+                        SdkLogEmitterProvider.builder()
+                        .addLogProcessor(SimpleLogProcessor.create(getOtlpLogExporter()))
+                        .setResource(Resource.getDefault().merge(serviceNameResource))
+                        .build())
                 .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()));
         return openTelemetrySdkBuilder.buildAndRegisterGlobal();
     }
 
+
+    @Bean
+    public OtlpGrpcLogExporter getOtlpLogExporter() {
+        return OtlpGrpcLogExporter.builder()
+                .setEndpoint("http://otel-collector:4317")
+                .setTimeout(30, TimeUnit.SECONDS)
+                .build();
+    }
+    
     @Bean
 
 	public JaegerGrpcSpanExporter getJaegerExporter(){

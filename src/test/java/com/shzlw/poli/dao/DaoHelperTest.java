@@ -2,8 +2,17 @@ package com.shzlw.poli.dao;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.shzlw.poli.metrics.CustomMetrics;
+
+import io.opentelemetry.api.trace.Tracer;
 
 public class DaoHelperTest {
+     @Autowired
+    private CustomMetrics customMetrics;
+     @Autowired
+    private Tracer tracer;
 
     @Test
     public void testToOffset() {

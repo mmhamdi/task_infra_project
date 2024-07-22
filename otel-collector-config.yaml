@@ -1,0 +1,17 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317" # For gRPC
+      http:
+        endpoint: "0.0.0.0:55681" # For HTTP, if used
+
+exporters:
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      exporters: [loki]

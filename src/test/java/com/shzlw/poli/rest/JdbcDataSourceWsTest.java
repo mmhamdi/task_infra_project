@@ -2,8 +2,12 @@ package com.shzlw.poli.rest;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.shzlw.poli.dao.JdbcDataSourceDao;
+import com.shzlw.poli.metrics.CustomMetrics;
 import com.shzlw.poli.model.JdbcDataSource;
 import com.shzlw.poli.util.Constants;
+
+import io.opentelemetry.api.trace.Tracer;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,6 +36,10 @@ public class JdbcDataSourceWsTest extends AbstractWsTest {
 
     @Autowired
     JdbcDataSourceDao jdbcDataSourceDao;
+     @Autowired
+    private CustomMetrics customMetrics;
+     @Autowired
+    private Tracer tracer;
 
     @Test
     public void test() throws Exception {
