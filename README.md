@@ -228,7 +228,7 @@ To ensure that tracing is correctly implemented and visible in Jaeger :
 
 1.**deploying the application as a container**:
     - I choose to add it to the same docker-compose file of my observability stack to ensure that both containers run on same network.
-    ```bash
+```yaml
 services:
   poli:
     build: .
@@ -245,26 +245,20 @@ services:
       - grafana
       - loki
       - otel-collector
-    ```
+```
 
-1. **Check Traces in Jaeger**
+2.**Check Traces in Jaeger**
    - Open Jaeger's web interface at `http://localhost:16686`.
    - Navigate to the **"Search"** tab.
    - Select the service name configured  "poli".
     <p align="center">
       <img src="images/spans_test.PNG" alt="image" width="900" height="400">
     </p>
-    - detailed spans :
+   - Analyze Trace Details:
     <p align="center">
-      <img src="images/spans_test1.PNG" alt="image" width="900" height="400">
+      <img src="images/span_test1.PNG" alt="image" width="900" height="400">
     </p>
 
-3. **Analyze Trace Details**
-   - Click on a trace to view its details. Verify that spans for different layers (controller, service, repository) are visible and properly nested.
-   - Check the duration of spans, trace events, and logs to ensure that the tracing implementation captures the expected data.
-
-
-By following these steps, you can validate that tracing data is correctly captured and visualized in Jaeger, providing valuable insights into your application's performance and behavior.
 
    
   
