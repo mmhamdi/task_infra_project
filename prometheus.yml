@@ -3,7 +3,12 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'poli-application'
+  - job_name: 'poli-custom-metrics'
     metrics_path: '/'
     static_configs:
       - targets: ['poli:9091']
+
+  - job_name: 'node-exporter'
+    metrics_path: '/'  
+    static_configs:
+      - targets: ['node-exporter:9100'] 
