@@ -210,15 +210,65 @@ OpenTelemetry is an open-source framework that provides APIs, libraries, and age
  4. **Tracing Implementation in Endpoints**:
 
 Following the OpenTelemetry configuration, I have added detailed tracing to several key endpoints across different layers within the application: 
-   - controller: to Monitors HTTP request handling, tracks request processing time, and captures endpoint performance metrics.   
-   - service: Observes business logic execution and interactions between services.  
-   - repository: Focuses on database operations and query performance .
+   - Controller: to Monitors HTTP request handling, tracks request processing time, and captures endpoint performance metrics.   
+   - Service: Observes business logic execution and interactions between services.  
+   - Repository: Focuses on database operations and query performance .
 
  - **Instrumented Endpoints**:
-        - *Reports* : [ReportWs.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/rest/ReportWs.java) ,[ReportService.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/service/ReportService.java) , [ReportDao.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/dao/ReportDao.java)
-        - *JdbcDataSource* : [JdbcDataSourceWs.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/rest/JdbcDataSourceWs.java) ,[JdbcDataSourceService.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/service/JdbcDataSourceService.java) , [JdbcDataSourceDao.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/dao/JdbcDataSourceDao.java)
-        - *User* :  [ReportWs.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/rest/UserWs.java) ,[UserService.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/service/UserService.java) , [UserDao.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/dao/UserDao.java)
+   
+    - *Reports* : [ReportWs.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/rest/ReportWs.java) ,[ReportService.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/service/ReportService.java) , [ReportDao.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/dao/ReportDao.java)
+
+    - *JdbcDataSource* : [JdbcDataSourceWs.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/rest/JdbcDataSourceWs.java) ,[JdbcDataSourceService.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/service/JdbcDataSourceService.java) , [JdbcDataSourceDao.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/dao/JdbcDataSourceDao.java)
+        
+    - *User* :  [ReportWs.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/rest/UserWs.java) ,[UserService.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/service/UserService.java) , [UserDao.java](https://github.com/mmhamdi/src/main/java/com/shzlw/poli/dao/UserDao.java)
+
+## Testing Tracing in Jaeger
+
+To ensure that tracing is correctly implemented and visible in Jaeger :
+
+1.**deploying the application as a container**:
+    - I choose to add it to the same docker-compose file of my observability stack to ensure that both containers run on same network.
+    ```bash
+services:
+  poli:
+    build: .
+    ports:
+      - "6688:6688"
+      - "9091:9091"
+    environment:
+      - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger:14250 
+      - OTEL_EXPORTER_PROMETHEUS_PORT=9091
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      - jaeger
+      - prometheus
+      - grafana
+      - loki
+      - otel-collector
+    ```
+
+1. **Check Traces in Jaeger**
+   - Open Jaeger's web interface at `http://localhost:16686`.
+   - Navigate to the **"Search"** tab.
+   - Select the service name configured  "poli".
+    <p align="center">
+      <img src="images/spans_test.PNG" alt="image" width="900" height="400">
+    </p>
+    - detailed spans :
+    <p align="center">
+      <img src="images/spans_test1.PNG" alt="image" width="900" height="400">
+    </p>
+
+3. **Analyze Trace Details**
+   - Click on a trace to view its details. Verify that spans for different layers (controller, service, repository) are visible and properly nested.
+   - Check the duration of spans, trace events, and logs to ensure that the tracing implementation captures the expected data.
 
 
+By following these steps, you can validate that tracing data is correctly captured and visualized in Jaeger, providing valuable insights into your application's performance and behavior.
+
+   
+  
+  
+   
 
 
