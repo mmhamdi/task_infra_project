@@ -10,8 +10,8 @@ This project involves instrumenting a Java-based service with OpenTelemetry and 
 2. [Infrastructure Setup](#infrastructure-setup)
 3. [Service Instrumentation](#service-instrumentation)
 4. [Metrics](#metrics)
-5. [Dashboards and Alerts](#dashboards-and-alerts)
-6. [Optional: Node Exporter](#optional-node-exporter)
+5. [Node Exporter](#optional-node-exporter)
+6. [Dashboards and Alerts](#dashboards-and-alerts)
 7. [Conclusion](#conclusion)
 
 ## Architecture
@@ -351,11 +351,119 @@ scrape_configs:
     static_configs:
       - targets: ['poli:9091']
 ```
+
 1.**Check Service Health in Prometheus** :
 
-  </p>
-   - Analyze Trace Details:
-    <p align="center">
-      <img src="images/span_test1.PNG" alt="image" width="900" height="400">
+  
+  <p align="center">
+      <img src="images/health check.PNG" alt="image" width="900" height="400">
     </p>
+    
+2.**Check the endpoint where metrics are exposed** :
+
+
+  <p align="center">
+      <img src="images/custom metrics.PNG" alt="image" width="900" height="400">
+    </p>
+
+## Node Exporter
+
+### Configure my application to generate metrics using micromiter
+
+1. **Add micrometer and Prometheus Dependencies**
+
+```bash
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <version>1.5.10</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <version>1.5.10</version>   
+        </dependency>
+ ```
+
+2. **Add configurations in application.properties file to enable Prometheus metrics endpoint:**
+
+   ```bash
+   management.endpoints.web.exposure.include=prometheus
+   management.endpoint.prometheus.enabled=true
+   management.metrics.export.prometheus.enabled=true
+   ```
+2. **Configure Prometheus to Scrape  Metrics**
+
+ ```bash
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'node-exporter'
+    metrics_path: '/metrics'  
+    static_configs:
+      - targets: ['node-exporter:9100']
+   ```
+2. **Test in  Prometheus **
+
+## Dashboards and Alerts
+
+This section describes how I create a Grafana dashboard to visualize custom metrics and set up alerts based on the `http_requests_total` metric.
+
+### Creating a Grafana Dashboard
+
+I navigate To `http://localhost:3000`.
+
+2. **Create a New Dashboard**
+
+3. **Configure the Panel for Custom Metrics**
+
+   - **Add a Panel:**
+     - Click on "Add new panel".
+     - In the "Query" section, select Prometheus as the data source.
+   
+   - **Enter Query:**
+  
+  <p align="center">
+    <img src="images/add_query.PNG" alt="image" width="900" height="400">
+    </p>
+
+   - **Customize Visualization:**
+
+   - **Save the Panel:**
+
+4. **Save the Dashboard**
+
+### Configuring Alerts for Custom Metrics
+
+1. **Add an Alert to a Panel**
+
+   - I choose to set up an alert for the panel of http_requests_total
+
+2. **Create Alert Rule**
+
+   - **Define Alert Condition:**
+     - I Set the condition to trigger the alert when `http_requests_total` exceeds a threshold of 10:
+       ```promql
+       http_requests_total > 10
+       ```
+     
+    <p align="center">
+      <img src="images/alert_condition.PNG" alt="image" width="900" height="400">
+    </p>
+     
+     - I configure the "Evaluations" and "For" fields : set "For" to 1 minutes to trigger the alert if the condition is met continuously for 1 minutes.
+
+   - **Save the Alert:**
+
+### Testing the Alert
+
+  <p align="center">
+      <img src="images/alert_test.PNG" alt="image" width="900" height="400">
+    </p>
+
+    
+     
+  
 
