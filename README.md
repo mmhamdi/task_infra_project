@@ -463,6 +463,40 @@ I navigate To `http://localhost:3000`.
       <img src="images/alert_test.PNG" alt="image" width="900" height="400">
     </p>
 
+### Node Metrics Dashbord 
+
+<p align="center">
+      <img src="images/node_dashbord.PNG" alt="image" width="900" height="400">
+    </p>
+
+## Conclusion
+
+This project successfully demonstrates the implementation of an observability stack and service instrumentation using OpenTelemetry. By integrating Grafana, Jaeger, Prometheus, , the project achieves comprehensive monitoring, tracing, and logging capabilities for a Java-based service.
+
+### Key Achievements:
+
+1. **Service Instrumentation**:
+   - **Metrics Collection**: Integrated custom metrics for detailed insights into the application’s performance.
+   - **Tracing**: Implemented tracing across controller, service, and repository layers, allowing for detailed visibility into request flows and performance bottlenecks.
+
+2. **Observability Stack**:
+   - **Grafana**: Provided a powerful interface for visualizing metrics and logs, with custom dashboards and alerts.
+   - **Jaeger**: Enabled detailed tracing to analyze request flows and identify performance issues.
+   - **Prometheus**: Collected and stored metrics, offering robust querying capabilities and alerting.
+   - **Loki**: Aggregated logs for efficient troubleshooting and debugging.
+
+3. **Docker Compose Deployment**:
+   - Deployed the observability stack using Docker Compose, ensuring persistent data storage and seamless integration between components.
+
+4. **Enhanced Visibility and Troubleshooting**:
+   - Achieved real-time monitoring, efficient troubleshooting, and data-driven decision-making through detailed metrics, traces, and logs.
+
+5. **Improved User Experience**:
+   - Optimized application performance by identifying and addressing bottlenecks, ultimately enhancing the user experience.
+
+Overall, this project demonstrates a robust approach to enhancing service observability, providing a scalable and efficient solution for monitoring and troubleshooting  applications.
+
+
     
      
   
