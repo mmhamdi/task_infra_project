@@ -1,86 +1,76 @@
-# **Poli（魄力）**
+# Observability Stack and Service Instrumentation
 
-[![Version](https://img.shields.io/badge/Version-0.12.2-0065FF.svg)](#)
-[![license: MIT](https://img.shields.io/badge/license-MIT-FF5630.svg)](https://opensource.org/licenses/MIT)
-[![Download](https://img.shields.io/github/downloads/shzlw/poli/total.svg?color=6554C0)](https://github.com/shzlw/poli/releases)
-[![Docker Pulls](https://img.shields.io/docker/pulls/zhonglu/poli.svg)](https://cloud.docker.com/u/zhonglu/repository/docker/zhonglu/poli)
-[![Build Status](https://travis-ci.org/shzlw/poli.svg?branch=master)](https://travis-ci.org/shzlw/poli)
-[![codecov](https://codecov.io/gh/shzlw/poli/branch/master/graph/badge.svg)](https://codecov.io/gh/shzlw/poli)
+## Overview
 
-Poli is an easy-to-use SQL reporting application built for SQL lovers!
+This project involves instrumenting a Java-based service with OpenTelemetry and setting up a compatible monitoring stack. The chosen stack includes Grafana, Jaeger, and Prometheus. The goal is to enable comprehensive tracing, metrics collection, and logging for enhanced observability of the service.
 
-## Why Poli
+## Table of Contents
 
-#### :zap: Self-hosted & easy setup
-Platform independent web application. Single JAR file + Single SQLite DB file. Get up and running in 5 minutes.
-#### :muscle: Connect to any database supporting JDBC drivers
-PostgreSQL, Oracle, SQL Server, MySQL, Elasticsearch... You name it.
-#### :bulb: SQL editor & schema viewer
-No ETLs, no generated SQL, polish your own SQL query to transform data.
-#### :fire: Rich and flexible styling
-Pixel-perfect positioning + Drag'n'Drop support to customize the reports and charts in your own way.
-#### :bookmark_tabs: Interactive Adhoc report
-Utilize the power of dynamic SQL with query variables to connect Filters and Charts.
-#### :hourglass: Canned report
-Capture the snapshot of historical data. Free up space in your own database.
-#### :santa: User management
-Three system level role configurations + Group based report access control.
-#### :earth_americas: Internationalization
-Custom the language pack and translations just for your audience.
-#### :moneybag: MIT license
-Open and free for all usages.
-#### :gem: Is that all?
-Auto refresh, drill through, fullscreen, embeds, color themes + more features in development.
+1. [Architecture](#Architecture)
+2. [Infrastructure Setup](#infrastructure-setup)
+3. [Service Instrumentation](#service-instrumentation)
+4. [Metrics](#metrics)
+5. [Dashboards and Alerts](#dashboards-and-alerts)
+6. [Optional: Node Exporter](#optional-node-exporter)
+7. [Conclusion](#conclusion)
 
-## What's New ([latest](https://shzlw.github.io/poli/#/change-logs))
+## Architecture
+## Infrastructure Setup
 
+### Components
 
-![poli v0.8.0](http://66.228.42.235:8080/image-0.8.0/bob_glass_en.jpg)
+- **Grafana**: For visualizing metrics and logs.
+- **Jaeger**: For tracing and monitoring request flows.
+- **Prometheus**: For collecting and querying metrics.
+- **Loki**: For centralized logging (integrated with Grafana).
 
-## Gallery
+### Docker Compose Configuration
 
-#### Slicer & Charts
+The observability stack is configured using Docker Compose. Persistent data storage is set up using bind mounts to ensure data durability across container restarts.
 
-![poli v0.5.0](http://66.228.42.235:8080/slicer.gif)
+#### Docker Compose File
 
-#### Move & Resize
+```yaml
+version: '3'
 
-![poli component reposition](http://66.228.42.235:8080/move.gif)
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.32
+    ports:
+      - "5775:5775"
+      - "5778:5778"
+      - "14250:14250"
+      - "14268:14268"
+      - "14250:14250"
+      - "16686:16686"
+    volumes:
+      - jaeger-data:/var/lib/jaeger
 
-#### Color palette switch & export CSV
+  prometheus:
+    image: prom/prometheus:2.38
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-config:/etc/prometheus
+      - prometheus-data:/prometheus
 
-![poli v0.6.0](http://66.228.42.235:8080/v0.6.0_new.gif)
+  grafana:
+    image: grafana/grafana:8.5
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
 
-## Quick Installation
+  loki:
+    image: grafana/loki:2.8
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
 
-Windows/Linux
-
-```sh
-java -jar poli-0.12.2.jar
-```
-
-Docker
-
-```sh
-docker run -d -p 6688:6688 --name poli zhonglu/poli:0.12.2
-```
-
-Check [installation guide](https://shzlw.github.io/poli/#/installation) for more details.
-
-## Download
-
-[Download](https://github.com/shzlw/poli/releases) the latest version of Poli via the github release page.
-
-## Documentation
-
-Poli's documentation and other information can be found at [here](https://shzlw.github.io/poli/).
-
-## Run on GCP
-
-[![Run on Google Cloud](https://deploy.cloud.run/button.svg)](https://deploy.cloud.run)
-
-## License
-
-MIT License
-
-Copyright (c) Zhonglu Wang
+volumes:
+  jaeger-data:
+  prometheus-config:
+  prometheus-data:
+  grafana-data:
+  loki-data:
